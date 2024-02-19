@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/adrg/xdg"
 )
 
 func readAppData() (map[string]string, error) {
-	// filePath, err := xdg.DataFile("pin/data.json")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	filePath := "data.json"
+	filePath, err := xdg.DataFile("pin/data.json")
+	if err != nil {
+		return nil, err
+	}
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -28,11 +28,10 @@ func readAppData() (map[string]string, error) {
 }
 
 func writeAppData(data map[string]string) error {
-	// filePath, err := xdg.DataFile("pin/data.json")
-	// if err != nil {
-	// 	return err
-	// }
-	filePath := "data.json"
+	filePath, err := xdg.DataFile("pin/data.json")
+	if err != nil {
+		return err
+	}
 	binData, err := json.MarshalIndent(data, "", "	")
 	if err != nil {
 		return err
@@ -47,25 +46,22 @@ func main() {
 		log.Fatal(err)
 	}
 
-	newCmd := flag.NewFlagSet("new", flag.ExitOnError)
-
 	if len(os.Args) < 2 {
-		fmt.Println("Subcommands are: new | go | rm | ls | show")
+		fmt.Println("Subcommands are: new | rm | list | get")
 		os.Exit(1)
 	}
 
 	switch os.Args[1] {
 	case "new":
 		// pin new [pin name] [directory]
-		newCmd.Parse(os.Args[2:])
-		if len(newCmd.Args()) != 2 {
+		if len(os.Args) != 4 {
 			fmt.Println("new expects two arguments: [pin name] [directory]")
 			os.Exit(1)
 		}
-		name := newCmd.Arg(0)
-		dir := newCmd.Arg(1)
-		if _, ok := dirs[name]; ok {
-			fmt.Printf("%v is already pinned\n", name)
+		pinName := os.Args[2]
+		dir := os.Args[3]
+		if _, ok := dirs[pinName]; ok {
+			fmt.Printf("%v is already pinned\n", pinName)
 			os.Exit(1)
 		}
 		path, err := filepath.Abs(dir)
@@ -73,19 +69,51 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		dirs[name] = path
+		dirs[pinName] = path
 		err = writeAppData(dirs)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
-	case "go":
-		fmt.Println("Running go...")
+
 	case "rm":
-		fmt.Println("Running rm...")
-	case "ls":
-		fmt.Println("Running ls...")
-	case "show":
-		fmt.Println("Running show...")
+		// pin rm [pin name]
+		if len(os.Args) != 3 {
+			fmt.Println("rm expects one argument: [pin name]")
+			os.Exit(1)
+		}
+		pinName := os.Args[2]
+		if _, ok := dirs[pinName]; !ok {
+			fmt.Printf("%v is not a pinned directory", pinName)
+			os.Exit(1)
+		}
+		delete(dirs, pinName)
+		err = writeAppData(dirs)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+	case "list":
+		// pin list
+		for pinName, dir := range dirs {
+			fmt.Printf("Name: %s, directory: %s\n", pinName, dir)
+		}
+
+	case "get":
+		// pin get [pin name]
+		if len(os.Args) != 3 {
+			fmt.Println("get expects one argument: [pin name]")
+			os.Exit(1)
+		}
+		pinName := os.Args[2]
+		dir, ok := dirs[pinName]
+		if !ok {
+			fmt.Printf("%v is not a pinned directory", pinName)
+			os.Exit(1)
+		}
+		fmt.Println(dir)
+
 	default:
 		fmt.Println("Command:", os.Args[1], "not recognized")
 	}

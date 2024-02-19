@@ -1,0 +1,8 @@
+# github.com/adrg/xdg v0.4.0
+## explicit; go 1.14
+github.com/adrg/xdg
+github.com/adrg/xdg/internal/pathutil
+# golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359
+## explicit; go 1.17
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/windows
